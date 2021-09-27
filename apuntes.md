@@ -2,7 +2,7 @@
 + [Documentación Laravel Passport](https://laravel.com/docs/8.x/passport)
 + [Repositorio](https://github.com/petrix12/api_laravel_passport.git)
 
-## Paso a paso:
+## Creación del proyecto paso a paso:
 1. Crear proyecto en la página de [GitHub](https://github.com) con el nombre: **api_laravel_passport**.
     + **Description**: Ejemplo de la creación de una API en Laravel 8 usando Laravel Passport.
     + **Public**.
@@ -11,16 +11,137 @@
 2. En la ubicación raíz del proyecto en la terminal de la máquina local:
     + $ git init
     + $ git add .
-    + $ git commit -m "Commit 00: Antes de iniciar"
+    + $ git commit -m "Proyecto en blanco"
     + $ git branch -M main
     + $ git remote add origin https://github.com/petrix12/api_laravel_passport.git
     + $ git push -u origin main
 3. Configurar las siguientes varialbles de entorno en **.env**:
     ```env
+    APP_NAME="Ejemplo de API con Laravel Passport"
+    APP_URL=http://127.0.0.1:8000
+    DB_DATABASE=pruebas_api
+    ```
+4. Crear base de datos **pruebas_api**.
+5. Instalar Laravel Passport:
+    + $ composer require laravel/passport
+    + $ php artisan migrate
+    + $ php artisan passport:install
+    + Recuperar credenciales:
+        ```txt
+        Personal access client created successfully.
+        Client ID: 1
+        Client secret: NDwt133ICMA9nS6IBNq0SQdFnVcu6bZ4pRecS5wo
+        Password grant client created successfully.
+        Client ID: 2
+        Client secret: GopgvFkvIBt5pJ0j4HJ9vxJWblMij4AL15mP3Gxb
+        ```
+6. Agregar el trait **HasApiTokens** en el modelo **User**:
+    ```php
+    ≡
+    use Laravel\Passport\HasApiTokens;
+
+    class User extends Authenticatable
+    {
+        use ..., HasApiTokens;
+        ≡
+    }
+    ```
+    + **Nota**: en caso de estar presente en el modelo user la definición de:
+        + use Laravel\Sanctum\HasApiTokens
+    + Reemplazar por la de Laravel Passport:
+        + use Laravel\Passport\HasApiTokens;
+7. Registrar **Laravel Passport** en el método **boot** del provider **AuthServiceProvider**:
+    ```php
+    public function boot()
+    {
+        ≡
+        if (! $this->app->routesAreCached()) {
+            Passport::routes();
+        }
+    }
+    ```
+    Importar la definición de la clase **Passport**:
+    ```php
+    use Laravel\Passport\Passport;
+    ```
+8. Modificar el archivo de configuración **config\auth.php**:
+    ```php
+    ≡
+    'guards' => [
+        ≡
+        'api' => [
+            'driver' => 'passport',
+            'provider' => 'users',
+        ],
+    ],
+    ≡
+    ```
+9. Mover el archivo de rutas para API:
+    + De:   routes\api.php
+    + A:    routes\api\v1\api.php
+10. Versionar la API modificando el método **boot** del provider **RouteServiceProvider**:
+    ```php
+    public function boot()
+    {
+        ≡
+        $this->routes(function () {
+            Route::prefix('api/v1')
+                ->middleware('api')
+                ->namespace($this->namespace)
+                ->group(base_path('routes/api/v1/api.php'));
+            ≡
+        });
+    }
+    ```
+    + Cuando se cree la versión **n** codificar así:
+    ```php
+    public function boot()
+    {
+        ≡
+        $this->routes(function () {
+            Route::prefix('api/v1')
+                ->middleware('api')
+                ->namespace($this->namespace)
+                ->group(base_path('routes/api/v1/api.php'));
+            ≡
+            Route::prefix('api/vn')
+                ->middleware('api')
+                ->namespace($this->namespace)
+                ->group(base_path('routes/api/vn/api.php'));
+            ≡
+        });
+    }
+    ```
+    + **Nota**: el archivo de rutas debe ubicarse en: routes\api\vn\api.php
+11. Crear los siguientes controladores:
+    + $ php artisan make:controller LoginController
+    + $ php artisan make:controller UserController
+12. Definir el método **login** del controlador **LoginController**:
+    ```php
     ***
     ```
-4. ssss
-
+    + Importar la definición del facade **Auth**:
+    ```php
+    use Illuminate\Support\Facades\Auth;
+    ```
+14. Definir el método **index** del controlador **UserController**:
+    ```php
+    ***
+    ```
+    + Importar la definición del modelo **User**:
+    ```php
+    use App\Models\User;
+    ```
+15. Para proteger nuestras rutas, modificar el archivo de rutas **routes\api\v1\api.php**:
+    ```php
+    ***
+    ```
+    + Importar las siguientes definciones de controladores:
+    ```php
+    use App\Http\Controllers\LoginController;
+    use App\Http\Controllers\UserController;
+    ```
+16. NO ESTA CULMINADO
 
 
 
@@ -36,7 +157,47 @@
 
 
 
-
+## Fase de pruebas:
+1. Descomentar la instrucción por defecto que trae el método **run** de **database\seeders\DatabaseSeeder.php** para crear 10 usuarios de prueba:
+    ```php
+    public function run()
+    {
+        \App\Models\User::factory(10)->create();
+    }
+    ```
+2. Correr las migraciones junto a los seeders:
+    + $ php artisan migrate --seed
+3. Realizar petición HTTP:
+    + Método: POST
+    + URL: http://127.0.0.1:8000/api/v1/users/login
+    + Body:
+        ```json
+        {
+            "email": "hhammes@example.com",
+            "password": "password"
+        }
+        ```
+    + **Respuesta para usuario autenticado**:
+        ```json
+        {
+            "user": {
+                "id": 1,
+                "name": "Romaine Runte",
+                "email": "hhammes@example.com",
+                "email_verified_at": "2021-09-27T20:34:10.000000Z",
+                "created_at": "2021-09-27T20:34:10.000000Z",
+                "updated_at": "2021-09-27T20:34:10.000000Z"
+            },
+            "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiYjM0ODE0ZjU2NDgzYTQ2Mjg4NzNhNjYzNDk2OGNjMGVjN2JkNWQ0MGEzM2RlNDkxYTIwZjE3Y2NkYWJjNzVhNjhjMjAzNzNhZTJiY2ViYzMiLCJpYXQiOjE2MzI3NzU3MjQuMTUyNDIzLCJuYmYiOjE2MzI3NzU3MjQuMTUyNDI4LCJleHAiOjE2NjQzMTE3MjQuMTQxMjA3LCJzdWIiOiIxIiwic2NvcGVzIjpbXX0.D-PRgxvLgAR7TbuDxsoODPu_JkkRH6-F2-wYCVp48kevBIfm1d9GoGZs5R1MncpOHlPwoJiA8qSowJc-m62JmehTO16Xpui_CCzV3pxyhtxcHz2-_a3kZkBwtVESbpvV1oMlEQj85XpJDROj8DkCX9FwlnzdyB-BqcgEloKxsQII6OXjZ5Z0A-b-I-V02QxvhUZ2U4t8Ryq-fpOijDAT1FML0RxaqWJ9DoQCFd73EFeW9A0DDs6tqGz3U2eEl35-jU8i5KxsNI7HqtaAqt3b4TqwVf6gKKI0mepuF_blI7DJxHJDLKxPYwJ1FxPD2lelsJZDhX6pzQV57I8j6EyrRz_Tl0p8vuboBsUuM28QMyThn8l1hVkMMPec_sZFmRgo6kA7n0mVl7Jg-qUCoYUFF5uRqce3_TkSbwDnYs_VhIyJSKmzh-hq0Gc3iGeu4QMLuIzY8qn9rOFk9Mrj5F1W2zi3p9iFPjMR04t5vJXAAKFUbY1-Wkiy0JlQDWBT3ql1yHHP3ZMF-GcIjrUr0sEAfIaaQBUXS9TbBXoshmJM3imsOyAAqRb4wG2pQCzDC6NnCaENaAXGHivI6Xe6zozy-tjpWrNpzUI1UKvnIwgVMf7I5JTmdio8D2rzDsOkN_Cn2h-Vuvl9rPw4nynbVy-0roTzTMyVARx9O_utgxmijR8"
+        }
+        ```
+    + **Respuesta para usuario no autenticado**:
+        ```json
+        {
+            "message": "Usuario y/o contraseña invalido."
+        }
+        ```
+4. sss
 
 
 ## Peticiones http que puede responder el proyecto api.restful:
